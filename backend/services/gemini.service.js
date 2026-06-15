@@ -1,8 +1,9 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 // Helper to recursively validate MongoDB operators
 function validateMongoFilter(obj) {
@@ -28,9 +29,7 @@ function validateMongoFilter(obj) {
 
 export async function generateMongoFilter(prompt) {
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `You are an AI assistant for a CRM that converts natural language audience descriptions into MongoDB filter JSON queries.
+    const result = await model.generateContent(`You are an AI assistant for a CRM that converts natural language audience descriptions into MongoDB filter JSON queries.
       
 Collection "Customer" Schema:
 {
@@ -52,10 +51,9 @@ Known replacements:
 "30_DAYS_AGO", "60_DAYS_AGO", "90_DAYS_AGO".
 
 User Request: "${prompt}"
-`,
-    });
+`);
     
-    let text = response.text.trim();
+    let text = result.response.text().trim();
     if(text.startsWith('\`\`\`json')){
         text = text.substring(7);
     }
@@ -84,9 +82,7 @@ User Request: "${prompt}"
 
 export async function generateCampaignContent(segmentDescription, goal) {
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `You are an AI Marketing Assistant. 
+    const result = await model.generateContent(`You are an AI Marketing Assistant. 
 Generate a marketing campaign based on:
 Audience: ${segmentDescription}
 Goal: ${goal}
@@ -99,9 +95,8 @@ Provide the output as STRICTLY valid JSON with the following schema:
   "reason": "Why you recommended this channel"
 }
 Do not include any other text or markdown blockquotes, just the JSON object.
-`
-    });
-    let text = response.text.trim();
+`);
+    let text = result.response.text().trim();
     if(text.startsWith('\`\`\`json')){
         text = text.substring(7);
     }
@@ -127,13 +122,10 @@ Do not include any other text or markdown blockquotes, just the JSON object.
 
 export async function generateInsights(funnelMetrics) {
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `You are an AI Data Analyst. Analyze these campaign metrics and provide 2-3 brief insights or recommendations.
+    const result = await model.generateContent(`You are an AI Data Analyst. Analyze these campaign metrics and provide 2-3 brief insights or recommendations.
 Metrics: ${JSON.stringify(funnelMetrics)}
-Return ONLY a JSON array of strings.`
-    });
-    let text = response.text.trim();
+Return ONLY a JSON array of strings.`);
+    let text = result.response.text().trim();
     if(text.startsWith('\`\`\`json')){
         text = text.substring(7);
     }
@@ -158,9 +150,7 @@ Return ONLY a JSON array of strings.`
 
 export async function explainOpportunity(opportunityType, data) {
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `You are an AI Marketing Strategist. 
+    const result = await model.generateContent(`You are an AI Marketing Strategist. 
 Explain this marketing opportunity in exactly 1 short, impactful sentence.
 Opportunity Type: ${opportunityType}
 Data: ${JSON.stringify(data)}
@@ -169,9 +159,8 @@ Example outputs:
 "247 customers have not purchased for 45 days."
 "92 customers recently became high-value buyers."
 "153 customers clicked a campaign but never converted."
-Return ONLY the sentence.`
-    });
-    return response.text.trim().replace(/^["']|["']$/g, '');
+Return ONLY the sentence.`);
+    return result.response.text().trim().replace(/^["']|["']$/g, '');
   } catch (error) {
     console.error("Gemini Error:", error);
     return `${data.count} customers identified for ${opportunityType}.`;
@@ -180,9 +169,7 @@ Return ONLY the sentence.`
 
 export async function generateCopilotCampaign(segmentName, audienceCount) {
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `You are an AI Marketing Strategist. The user clicked "Generate Complete Campaign" for:
+    const result = await model.generateContent(`You are an AI Marketing Strategist. The user clicked "Generate Complete Campaign" for:
 Segment: ${segmentName}
 Audience Size: ${audienceCount}
 
@@ -194,9 +181,8 @@ Create a complete campaign. Output strictly JSON:
   "recommendedChannel": "One of: WhatsApp, SMS, Email, RCS",
   "campaignMessage": "The persuasive message copy",
   "reasoning": "Why this channel and message were chosen."
-}`
-    });
-    let text = response.text.trim();
+}`);
+    let text = result.response.text().trim();
     if(text.startsWith('```json')) text = text.substring(7);
     if(text.startsWith('```')) text = text.substring(3);
     if(text.endsWith('```')) text = text.substring(0, text.length - 3);
