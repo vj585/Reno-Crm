@@ -1,0 +1,16 @@
+# Environment Variables
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build
+dist/
+build/
+.next/
+
+# Misc
+.DS_Store
+.gemini/
